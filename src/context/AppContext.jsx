@@ -1,0 +1,87 @@
+import { createContext, useContext, useState, useRef } from 'react';
+import { extractTelemetry } from '../utils/telemetry';
+
+const AppContext = createContext(null);
+
+export function AppProvider({ children }) {
+  const [yourVideo, setYourVideo] = useState(null); // { file, url, telemetry }
+  const [compVideo, setCompVideo] = useState(null);
+  const [startTime, setStartTime] = useState(null); // seconds into your video
+  const [finishTime, setFinishTime] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
+
+  // Background extraction tracking
+  const [yourExtracting, setYourExtracting] = useState(false);
+  const [compExtracting, setCompExtracting] = useState(false);
+  const [extractError, setExtractError] = useState(null);
+  const yourPromiseRef = useRef(null);
+  const compPromiseRef = useRef(null);
+
+  function startYourExtraction(file) {
+    const url = URL.createObjectURL(file);
+    setYourVideo({ file, url, telemetry: null });
+    setYourExtracting(true);
+    setExtractError(null);
+    const p = extractTelemetry(file, () => {})
+      .then((telemetry) => {
+        setYourVideo((prev) => ({ ...prev, telemetry }));
+        setYourExtracting(false);
+        return telemetry;
+      })
+      .catch((err) => {
+        setYourExtracting(false);
+        setExtractError(err?.message || 'No GoPro telemetry found — file may have been re-encoded by AirDrop/iCloud');
+        throw err;
+      });
+    yourPromiseRef.current = p;
+    return p;
+  }
+
+  function startCompExtraction(file) {
+    const url = URL.createObjectURL(file);
+    setCompVideo({ file, url, telemetry: null });
+    setCompExtracting(true);
+    setExtractError(null);
+    const p = extractTelemetry(file, () => {})
+      .then((telemetry) => {
+        setCompVideo((prev) => ({ ...prev, telemetry }));
+        setCompExtracting(false);
+        return telemetry;
+      })
+      .catch((err) => {
+        setCompExtracting(false);
+        setExtractError(err?.message || 'No GoPro telemetry found — file may have been re-encoded by AirDrop/iCloud');
+        throw err;
+      });
+    compPromiseRef.current = p;
+    return p;
+  }
+
+  async function waitForBothExtractions() {
+    const promises = [];
+    if (yourPromiseRef.current) promises.push(yourPromiseRef.current);
+    if (compPromiseRef.current) promises.push(compPromiseRef.current);
+    await Promise.all(promises);
+  }
+
+  return (
+    <AppContext.Provider value={{
+      yourVideo, setYourVideo,
+      compVideo, setCompVideo,
+      startTime, setStartTime,
+      finishTime, setFinishTime,
+      analysis, setAnalysis,
+      yourExtracting, compExtracting, extractError,
+      startYourExtraction, startCompExtraction, waitForBothExtractions,
+    }}>
+      {children}
+    </AppContext.Provider>
+  );
+}
+
+export function useApp() {
+  const ctx = useContext(AppContext);
+  if (!ctx) throw new Error('useApp must be inside AppProvider');
+  return ctx;
+}
+
