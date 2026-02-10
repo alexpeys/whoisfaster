@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function WelcomeStep({ onNext }) {
-  const { startYourExtraction } = useApp();
+  const { startYourExtraction, openFaq } = useApp();
   const inputRef = useRef(null);
 
   function handleFile(file) {
@@ -28,6 +28,14 @@ export default function WelcomeStep({ onNext }) {
         <div className="upload-label">Attach Your GoPro Video</div>
         <div className="upload-hint">All processing is performed on your local device — videos are never uploaded anywhere</div>
       </div>
+
+      <button
+        className="faq-welcome-btn"
+        onClick={() => openFaq(null)}
+        style={{ marginTop: '24px' }}
+      >
+        ❓ FAQ
+      </button>
     </div>
   );
 }
