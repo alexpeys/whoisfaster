@@ -27,6 +27,10 @@ export function AppProvider({ children }) {
   const [faqInitialQuestion, setFaqInitialQuestion] = useState(null);
 
   function startYourExtraction(file) {
+    // Revoke old URL if it exists
+    if (yourVideo?.url) {
+      URL.revokeObjectURL(yourVideo.url);
+    }
     const url = URL.createObjectURL(file);
     setYourVideo({ file, url, telemetry: null });
     setYourExtracting(true);
@@ -47,6 +51,10 @@ export function AppProvider({ children }) {
   }
 
   function startCompExtraction(file) {
+    // Revoke old URL if it exists
+    if (compVideo?.url) {
+      URL.revokeObjectURL(compVideo.url);
+    }
     const url = URL.createObjectURL(file);
     setCompVideo({ file, url, telemetry: null });
     setCompExtracting(true);
