@@ -133,10 +133,46 @@ export default function AnalysisStep() {
     });
   }
 
+  // Compute acceleration from speed data with moving average smoothing
+  function computeAcceleration(metrics) {
+    if (metrics.length < 2) return [];
+    const accel = [];
+    for (let i = 0; i < metrics.length - 1; i++) {
+      const dt = metrics[i + 1].raceTime - metrics[i].raceTime;
+      const dv = metrics[i + 1].speedMph - metrics[i].speedMph;
+      accel.push(dt > 0.01 ? dv / dt : 0);
+    }
+    accel.push(accel[accel.length - 1] || 0);
+    // Apply moving average (window=5)
+    const smoothed = [];
+    for (let i = 0; i < accel.length; i++) {
+      let sum = 0, count = 0;
+      for (let j = Math.max(0, i - 2); j <= Math.min(accel.length - 1, i + 2); j++) {
+        sum += accel[j];
+        count++;
+      }
+      smoothed.push(sum / count);
+    }
+    return smoothed;
+  }
+
+  const yourAccel = computeAcceleration(yourMetrics);
+  const compAccel = computeAcceleration(compMetrics);
+
+  const accelData = yourMetrics.map((ym, i) => ({
+    distMi: +(ym.dist * M_TO_MI).toFixed(3),
+    raceTime: +ym.raceTime.toFixed(2),
+    yourAccel: +yourAccel[i].toFixed(2),
+    compAccel: compMetrics[Math.min(i, compMetrics.length - 1)]
+      ? +compAccel[Math.min(i, compMetrics.length - 1)].toFixed(2)
+      : 0,
+  }));
+
   const tabs = [
     { key: 'map', label: 'Course Map' },
     { key: 'delta', label: 'Time Delta' },
     { key: 'speed', label: 'Speed' },
+    { key: 'accel', label: 'Accel' },
     { key: 'yaw', label: 'Yaw Rate' },
   ];
 
@@ -174,6 +210,11 @@ export default function AnalysisStep() {
         </div>
         <div className="stat-divider" />
         <div className="stat-item">
+          <span className="stat-lbl">Their Lap Time</span>
+          <span className="stat-val">{compTotalTime.toFixed(2)}s</span>
+        </div>
+        <div className="stat-divider" />
+        <div className="stat-item">
           <span className="stat-lbl">You are</span>
           <span className="stat-val" style={{ color: finalDelta > 0 ? 'var(--red)' : '#22c55e' }}>
             {finalDelta > 0 ? '+' : ''}{finalDelta.toFixed(2)}s {finalDelta > 0 ? 'slower' : 'faster'}
@@ -194,8 +235,8 @@ export default function AnalysisStep() {
         ))}
       </div>
 
-      {/* Legend — only for speed/yaw */}
-      {(activeTab === 'speed' || activeTab === 'yaw') && (
+      {/* Legend — only for speed/accel/yaw */}
+      {(activeTab === 'speed' || activeTab === 'accel' || activeTab === 'yaw') && (
         <div className="chart-legend">
           <span className="legend-you">● YOU</span>
           <span className="legend-comp">● COMPARISON</span>
@@ -208,6 +249,7 @@ export default function AnalysisStep() {
           <div className="chart-container" style={{ height: 400 }}>
             <CourseMap
               timeDelta={timeDelta}
+              yourMetrics={yourMetrics}
               onPointClick={handleMapPointClick}
               selectedRaceTime={seekPoint ? (seekPoint.you - startTime) : null}
             />
@@ -240,6 +282,16 @@ export default function AnalysisStep() {
                   <Tooltip content={renderTooltip} />
                   <Line type="monotone" dataKey="yourSpeed" stroke="var(--blue)" strokeWidth={2} dot={false} name="You (mph)" />
                   <Line type="monotone" dataKey="compSpeed" stroke="var(--red)" strokeWidth={2} dot={false} name="Comparison (mph)" />
+                </LineChart>
+              ) : activeTab === 'accel' ? (
+                <LineChart data={accelData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#222" />
+                  <XAxis dataKey="distMi" stroke="#555" fontSize={11} label={{ value: 'Distance (mi)', position: 'bottom', fill: '#555' }} />
+                  <YAxis stroke="#555" fontSize={11} label={{ value: 'Acceleration (mph/s)', angle: -90, position: 'left', fill: '#555' }} />
+                  <Tooltip content={renderTooltip} />
+                  <ReferenceLine y={0} stroke="#444" strokeDasharray="3 3" />
+                  <Line type="monotone" dataKey="yourAccel" stroke="var(--blue)" strokeWidth={2} dot={false} name="You (mph/s)" />
+                  <Line type="monotone" dataKey="compAccel" stroke="var(--red)" strokeWidth={2} dot={false} name="Comparison (mph/s)" />
                 </LineChart>
               ) : (
                 <LineChart data={yawData}>
