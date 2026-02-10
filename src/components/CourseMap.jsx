@@ -137,6 +137,31 @@ export default function CourseMap({ timeDelta, yourMetrics, onPointClick, select
     canvas.style.cursor = bestIdx != null ? 'pointer' : 'crosshair';
   }
 
+  function handleTouchMove(e) {
+    const canvas = canvasRef.current;
+    if (!canvas || !e.touches.length) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const mx = touch.clientX - rect.left, my = touch.clientY - rect.top;
+    const pts = pointsRef.current;
+    let bestIdx = null, bestDist = 20;
+    for (let i = 0; i < pts.length; i++) {
+      const dx = pts[i].x - mx, dy = pts[i].y - my;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < bestDist) { bestDist = d; bestIdx = i; }
+    }
+    setHoveredIdx(bestIdx);
+  }
+
+  function handleTouchEnd(e) {
+    e.preventDefault();
+    if (hoveredIdx != null && timeDelta[hoveredIdx]) {
+      onPointClick(timeDelta[hoveredIdx]);
+    }
+    setHoveredIdx(null);
+  }
+
   function handleClick() {
     if (hoveredIdx != null && timeDelta[hoveredIdx]) {
       onPointClick(timeDelta[hoveredIdx]);
@@ -151,7 +176,8 @@ export default function CourseMap({ timeDelta, yourMetrics, onPointClick, select
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <canvas ref={canvasRef} onMouseMove={handleMouseMove}
         onMouseLeave={() => setHoveredIdx(null)} onClick={handleClick}
-        style={{ display: 'block', width: '100%', height: '100%' }} />
+        onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
+        style={{ display: 'block', width: '100%', height: '100%', touchAction: 'none' }} />
       {hd && (
         <div style={{ position: 'absolute', top: 8, right: 8, background: '#111',
           border: '1px solid #333', borderRadius: 4, padding: '8px 12px',
