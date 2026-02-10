@@ -401,6 +401,25 @@ video { width: 100%; height: 80vh; background: #000; object-fit: contain; }
   transform: scale(0.95);
 }
 
+/* FAQ Welcome Button */
+.faq-welcome-btn {
+  background: transparent;
+  color: var(--text2);
+  border: 1px solid var(--border);
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.faq-welcome-btn:hover {
+  color: var(--text);
+  border-color: var(--text);
+  background: var(--bg2);
+}
+
 /* Step Indicator */
 .step-indicator {
   position: sticky;
@@ -481,4 +500,90 @@ video { width: 100%; height: 80vh; background: #000; object-fit: contain; }
 .back-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+/* FAQ Overlay and Modal */
+.faq-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+}
+
+.faq-modal {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.faq-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.faq-header h2 {
+  margin: 0;
+  font-size: 24px;
+  color: var(--text);
+}
+
+.faq-close {
+  background: transparent;
+  color: var(--text2);
+  border: none;
+  font-size: 24px;
+  padding: 0;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.faq-close:hover {
+  color: var(--text);
+}
+
+.faq-content {
+  padding: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--border);
+  padding: 20px 24px;
+}
+
+.faq-item:last-child {
+  border-bottom: none;
+}
+
+.faq-item h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.faq-item p {
+  margin: 0;
+  color: var(--text2);
+  font-size: 14px;
+  line-height: 1.6;
 }
