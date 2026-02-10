@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { computeMetrics, computeYawRate, findCompBounds, computeTimeDelta, detectLapCrossings, findLaps, detectRuns } from '../utils/analysis';
 
@@ -27,6 +27,69 @@ export default function MarkCourseStep({ onNext, goBack }) {
   const handleTimeUpdate = useCallback(() => {
     if (videoRef.current) setCurrentTime(videoRef.current.currentTime);
   }, []);
+
+  // Frame step helper
+  const stepFrame = useCallback((direction) => {
+    if (videoRef.current) {
+      const frameTime = 0.033; // ~30fps
+      videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime + (direction * frameTime));
+    }
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't capture if user is typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === 'arrowleft') {
+        e.preventDefault();
+        stepFrame(-1);
+      } else if (key === 'arrowright') {
+        e.preventDefault();
+        stepFrame(1);
+      } else if (key === 's') {
+        e.preventDefault();
+        if (raceMode !== 'circuit') {
+          setStartTime(currentTime);
+        } else {
+          handleSetCircuitStartPoint();
+        }
+      } else if (key === 'f') {
+        e.preventDefault();
+        if (raceMode !== 'circuit') {
+          setFinishTime(currentTime);
+        }
+      } else if (key === ' ') {
+        e.preventDefault();
+        if (videoRef.current) {
+          if (videoRef.current.paused) {
+            videoRef.current.play();
+          } else {
+            videoRef.current.pause();
+          }
+        }
+      } else if (key === 'enter') {
+        e.preventDefault();
+        if (raceMode !== 'circuit' && startTime != null && finishTime != null) {
+          handleAnalyze();
+        } else if (raceMode === 'circuit' && selectedLapNumber != null) {
+          const yourLap = yourLaps.find(l => l.lapNumber === selectedLapNumber);
+          const compLap = compLaps.find(l => l.lapNumber === selectedLapNumber);
+          if (yourLap && compLap) {
+            setYourSelectedLap({ startCts: yourLap.startCts, finishCts: yourLap.finishCts });
+            setCompSelectedLap({ startCts: compLap.startCts, finishCts: compLap.finishCts });
+            handleAnalyze();
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [currentTime, raceMode, startTime, finishTime, selectedLapNumber, yourLaps, compLaps, stepFrame]);
 
   function formatTime(s) {
     if (s == null) return '--:--:--';
@@ -243,6 +306,11 @@ export default function MarkCourseStep({ onNext, goBack }) {
             onTimeUpdate={handleTimeUpdate}
             style={{ maxHeight: '60vh', width: '100%', objectFit: 'contain' }}
           />
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center', justifyContent: 'center' }}>
+            <button className="frame-btn" onClick={() => stepFrame(-1)}>◀ Frame</button>
+            <button className="frame-btn" onClick={() => stepFrame(1)}>Frame ▶</button>
+          </div>
+          <div className="keyboard-hint">Keyboard: ← → frame step | S start | F finish | Space play/pause | Enter analyze</div>
           <div style={{ display: 'flex', gap: 12, marginTop: 12, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button
               className={`marker-btn ${startTime != null ? 'set' : ''}`}
@@ -376,6 +444,11 @@ export default function MarkCourseStep({ onNext, goBack }) {
           onTimeUpdate={handleTimeUpdate}
           style={{ maxHeight: '60vh', width: '100%', objectFit: 'contain' }}
         />
+        <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center', justifyContent: 'center' }}>
+          <button className="frame-btn" onClick={() => stepFrame(-1)}>◀ Frame</button>
+          <button className="frame-btn" onClick={() => stepFrame(1)}>Frame ▶</button>
+        </div>
+        <div className="keyboard-hint">Keyboard: ← → frame step | S set start/finish | Space play/pause | Enter analyze</div>
 
         {!circuitStartPoint ? (
           <div style={{ marginTop: 12 }}>
