@@ -502,88 +502,63 @@ video { width: 100%; height: 80vh; background: #000; object-fit: contain; }
   cursor: not-allowed;
 }
 
-/* FAQ Overlay and Modal */
-.faq-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+
+
+/* Mode Selection Cards */
+.mode-cards-container {
   display: flex;
-  align-items: center;
+  gap: 24px;
   justify-content: center;
-  z-index: 200;
-  padding: 24px;
+  margin: 48px 0;
+  flex-wrap: wrap;
 }
 
-.faq-modal {
+.mode-card {
   background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  max-width: 600px;
-  width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 32px 24px;
+  width: 280px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
   display: flex;
   flex-direction: column;
-}
-
-.faq-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 24px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  gap: 12px;
 }
 
-.faq-header h2 {
+.mode-card:hover {
+  border-color: var(--blue);
+  background: #1a1a1a;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
+}
+
+.mode-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.mode-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
   margin: 0;
-  font-size: 24px;
-  color: var(--text);
 }
 
-.faq-close {
-  background: transparent;
-  color: var(--text2);
-  border: none;
-  font-size: 24px;
-  padding: 0;
-  cursor: pointer;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.2s;
-}
-
-.faq-close:hover {
-  color: var(--text);
-}
-
-.faq-content {
-  padding: 0;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.faq-item {
-  border-bottom: 1px solid var(--border);
-  padding: 20px 24px;
-}
-
-.faq-item:last-child {
-  border-bottom: none;
-}
-
-.faq-item h3 {
-  margin: 0 0 12px 0;
-  font-size: 16px;
-  color: var(--text);
-}
-
-.faq-item p {
+.mode-subtitle {
+  font-size: 13px;
+  color: var(--blue);
+  font-weight: 600;
   margin: 0;
-  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mode-description {
   font-size: 14px;
-  line-height: 1.6;
+  color: var(--text2);
+  margin: 0;
+  line-height: 1.5;
 }

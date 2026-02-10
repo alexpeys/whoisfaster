@@ -3,6 +3,7 @@ export default function StepIndicator({ currentStep }) {
     { id: 'welcome', label: 'Upload Your Video' },
     { id: 'uploadComp', label: 'Upload Comparison' },
     { id: 'extracting', label: 'Processing' },
+    { id: 'modeSelect', label: 'Select Mode' },
     { id: 'mark', label: 'Mark Course' },
     { id: 'analysis', label: 'Results' },
   ];

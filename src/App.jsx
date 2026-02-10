@@ -4,6 +4,7 @@ import StepIndicator from './components/StepIndicator';
 import WelcomeStep from './steps/WelcomeStep';
 import UploadCompStep from './steps/UploadCompStep';
 import ExtractingStep from './steps/ExtractingStep';
+import ModeSelectStep from './steps/ModeSelectStep';
 import MarkCourseStep from './steps/MarkCourseStep';
 import AnalysisStep from './steps/AnalysisStep';
 import FAQModal from './components/FAQModal';
@@ -21,7 +22,8 @@ function Wizard() {
       <StepIndicator currentStep={step} />
       {step === 'welcome' && <WelcomeStep onNext={() => setStep('uploadComp')} />}
       {step === 'uploadComp' && <UploadCompStep onNext={() => setStep('extracting')} goBack={() => goBack('welcome')} />}
-      {step === 'extracting' && <ExtractingStep onNext={() => setStep('mark')} onReset={() => setStep('welcome')} />}
+      {step === 'extracting' && <ExtractingStep onNext={() => setStep('modeSelect')} onReset={() => setStep('welcome')} />}
+      {step === 'modeSelect' && <ModeSelectStep onNext={() => setStep('mark')} goBack={() => goBack('extracting')} />}
       {step === 'mark' && <MarkCourseStep onNext={() => setStep('analysis')} goBack={() => goBack('uploadComp')} />}
       {step === 'analysis' && <AnalysisStep />}
 

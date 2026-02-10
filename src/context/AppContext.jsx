@@ -9,6 +9,7 @@ export function AppProvider({ children }) {
   const [startTime, setStartTime] = useState(null); // seconds into your video
   const [finishTime, setFinishTime] = useState(null);
   const [analysis, setAnalysis] = useState(null);
+  const [raceMode, setRaceMode] = useState(null); // 'point2point' or 'circuit'
 
   // Background extraction tracking
   const [yourExtracting, setYourExtracting] = useState(false);
@@ -85,6 +86,7 @@ export function AppProvider({ children }) {
       startTime, setStartTime,
       finishTime, setFinishTime,
       analysis, setAnalysis,
+      raceMode, setRaceMode,
       yourExtracting, compExtracting, extractError,
       startYourExtraction, startCompExtraction, waitForBothExtractions,
       faqOpen, faqInitialQuestion, openFaq, closeFaq,
