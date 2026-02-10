@@ -17,6 +17,10 @@ export function AppProvider({ children }) {
   const yourPromiseRef = useRef(null);
   const compPromiseRef = useRef(null);
 
+  // FAQ state
+  const [faqOpen, setFaqOpen] = useState(false);
+  const [faqInitialQuestion, setFaqInitialQuestion] = useState(null);
+
   function startYourExtraction(file) {
     const url = URL.createObjectURL(file);
     setYourVideo({ file, url, telemetry: null });
@@ -64,6 +68,16 @@ export function AppProvider({ children }) {
     await Promise.all(promises);
   }
 
+  function openFaq(questionId) {
+    setFaqInitialQuestion(questionId);
+    setFaqOpen(true);
+  }
+
+  function closeFaq() {
+    setFaqOpen(false);
+    setFaqInitialQuestion(null);
+  }
+
   return (
     <AppContext.Provider value={{
       yourVideo, setYourVideo,
@@ -73,6 +87,7 @@ export function AppProvider({ children }) {
       analysis, setAnalysis,
       yourExtracting, compExtracting, extractError,
       startYourExtraction, startCompExtraction, waitForBothExtractions,
+      faqOpen, faqInitialQuestion, openFaq, closeFaq,
     }}>
       {children}
     </AppContext.Provider>

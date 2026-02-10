@@ -20,7 +20,7 @@ function Wizard() {
       <StepIndicator currentStep={step} />
       {step === 'welcome' && <WelcomeStep onNext={() => setStep('uploadComp')} />}
       {step === 'uploadComp' && <UploadCompStep onNext={() => setStep('extracting')} goBack={() => goBack('welcome')} />}
-      {step === 'extracting' && <ExtractingStep onNext={() => setStep('mark')} />}
+      {step === 'extracting' && <ExtractingStep onNext={() => setStep('mark')} onReset={() => setStep('welcome')} />}
       {step === 'mark' && <MarkCourseStep onNext={() => setStep('analysis')} goBack={() => goBack('uploadComp')} />}
       {step === 'analysis' && <AnalysisStep />}
     </div>
@@ -31,6 +31,7 @@ function App() {
   return (
     <AppProvider>
       <Wizard />
+      <FAQ />
     </AppProvider>
   );
 }
