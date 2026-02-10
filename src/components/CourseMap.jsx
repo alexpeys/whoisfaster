@@ -12,12 +12,27 @@ function computeDeltaDelta(timeDelta, windowSec = 5) {
   return result;
 }
 
-export default function CourseMap({ timeDelta, onPointClick, selectedRaceTime }) {
+export default function CourseMap({ timeDelta, yourMetrics, onPointClick, selectedRaceTime }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const [hoveredIdx, setHoveredIdx] = useState(null);
   const pointsRef = useRef([]);
   const deltaDeltaRef = useRef([]);
+
+  // Interpolate speed from yourMetrics at a given raceTime
+  function getSpeedAtRaceTime(raceTime) {
+    if (!yourMetrics || yourMetrics.length === 0) return null;
+    if (raceTime <= yourMetrics[0].raceTime) return yourMetrics[0].speedMph;
+    if (raceTime >= yourMetrics[yourMetrics.length - 1].raceTime) return yourMetrics[yourMetrics.length - 1].speedMph;
+    for (let i = 1; i < yourMetrics.length; i++) {
+      if (yourMetrics[i].raceTime >= raceTime) {
+        const m0 = yourMetrics[i - 1], m1 = yourMetrics[i];
+        const t = (raceTime - m0.raceTime) / (m1.raceTime - m0.raceTime);
+        return m0.speedMph + t * (m1.speedMph - m0.speedMph);
+      }
+    }
+    return yourMetrics[yourMetrics.length - 1].speedMph;
+  }
 
   const getProjection = useCallback((width, height) => {
     if (!timeDelta || timeDelta.length === 0) return null;
@@ -130,6 +145,7 @@ export default function CourseMap({ timeDelta, onPointClick, selectedRaceTime })
 
   const hd = hoveredIdx != null ? timeDelta[hoveredIdx] : null;
   const hdd = hoveredIdx != null ? deltaDeltaRef.current[hoveredIdx] : null;
+  const hdSpeed = hd ? getSpeedAtRaceTime(hd.raceTime) : null;
 
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -143,6 +159,7 @@ export default function CourseMap({ timeDelta, onPointClick, selectedRaceTime })
           <p style={{ margin: 0 }}>Dist: {(hd.dist * 0.000621371).toFixed(3)} mi</p>
           <p style={{ margin: 0, color: '#888' }}>Time: {hd.raceTime.toFixed(2)}s</p>
           <p style={{ margin: 0, color: '#888' }}>Delta: {hd.delta.toFixed(3)}s</p>
+          {hdSpeed != null && <p style={{ margin: 0, color: '#888' }}>Speed: {hdSpeed.toFixed(1)} mph</p>}
           <p style={{ margin: 0, color: hdd < 0 ? '#3b82f6' : '#ef4444' }}>
             {hdd < 0 ? 'Gaining' : 'Losing'} ({Math.abs(hdd || 0).toFixed(3)}s/s)
           </p>
