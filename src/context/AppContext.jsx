@@ -42,8 +42,9 @@ export function AppProvider({ children }) {
         return telemetry;
       })
       .catch((err) => {
+        console.error('Telemetry extraction failed:', err);
         setYourExtracting(false);
-        setExtractError(err?.message || 'No GoPro telemetry found — file may have been re-encoded by AirDrop/iCloud');
+        setExtractError('No GPS telemetry found. Make sure you\'re using an original GoPro file — re-encoding (e.g. via AirDrop or iCloud) strips the telemetry data.');
         throw err;
       });
     yourPromiseRef.current = p;
@@ -66,8 +67,9 @@ export function AppProvider({ children }) {
         return telemetry;
       })
       .catch((err) => {
+        console.error('Telemetry extraction failed:', err);
         setCompExtracting(false);
-        setExtractError(err?.message || 'No GoPro telemetry found — file may have been re-encoded by AirDrop/iCloud');
+        setExtractError('No GPS telemetry found. Make sure you\'re using an original GoPro file — re-encoding (e.g. via AirDrop or iCloud) strips the telemetry data.');
         throw err;
       });
     compPromiseRef.current = p;
