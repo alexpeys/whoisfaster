@@ -2,7 +2,7 @@ import { useRef, useState, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { computeMetrics, computeYawRate, findCompBounds, computeTimeDelta } from '../utils/analysis';
 
-export default function MarkCourseStep({ onNext }) {
+export default function MarkCourseStep({ onNext, goBack }) {
   const { yourVideo, compVideo, startTime, setStartTime, finishTime, setFinishTime, setAnalysis } = useApp();
   const videoRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -99,6 +99,12 @@ export default function MarkCourseStep({ onNext }) {
             {processing ? 'Analyzing...' : '🏎 Analyze Race'}
           </button>
         </div>
+
+        {goBack && (
+          <button className="back-btn" onClick={goBack} style={{ marginTop: 24 }}>
+            ← Back
+          </button>
+        )}
       </div>
 
       {processing && (

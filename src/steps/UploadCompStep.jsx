@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useApp } from '../context/AppContext';
 
-export default function UploadCompStep({ onNext }) {
+export default function UploadCompStep({ onNext, goBack }) {
   const { startCompExtraction } = useApp();
   const inputRef = useRef(null);
 
@@ -27,6 +27,12 @@ export default function UploadCompStep({ onNext }) {
         <div className="upload-label">Upload Comparison Video</div>
         <div className="upload-hint">GoPro MP4 from coach or friend</div>
       </div>
+
+      {goBack && (
+        <button className="back-btn" onClick={goBack}>
+          ← Back
+        </button>
+      )}
     </div>
   );
 }
