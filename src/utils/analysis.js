@@ -13,6 +13,13 @@ function haversine(lat1, lng1, lat2, lng2) {
 }
 
 /**
+ * Haversine distance helper for objects with {lat, lng} properties.
+ */
+function haversineDist(a, b) {
+  return haversine(a.lat, a.lng, b.lat, b.lng);
+}
+
+/**
  * Bearing in degrees from point 1 to point 2.
  */
 function bearing(lat1, lng1, lat2, lng2) {
@@ -159,5 +166,70 @@ export function computeTimeDelta(yourMetrics, compMetrics) {
       lat: ym.lat, lng: ym.lng,
     };
   });
+}
+
+/**
+ * Detect all crossings of a start/finish point in circuit mode.
+ * Groups consecutive nearby GPS samples into single "crossings".
+ * Returns array of CTS timestamps (middle of each crossing cluster).
+ */
+export function detectLapCrossings(gpsSamples, startLat, startLng, radiusMeters = 20) {
+  if (!gpsSamples || gpsSamples.length === 0) return [];
+
+  // Find all samples within radius
+  const nearbyIndices = [];
+  for (let i = 0; i < gpsSamples.length; i++) {
+    const dist = haversine(gpsSamples[i].lat, gpsSamples[i].lng, startLat, startLng);
+    if (dist <= radiusMeters) {
+      nearbyIndices.push(i);
+    }
+  }
+
+  if (nearbyIndices.length === 0) return [];
+
+  // Group consecutive indices into clusters
+  const clusters = [];
+  let currentCluster = [nearbyIndices[0]];
+
+  for (let i = 1; i < nearbyIndices.length; i++) {
+    // If gap > 1 index, start new cluster
+    if (nearbyIndices[i] - nearbyIndices[i - 1] > 1) {
+      clusters.push(currentCluster);
+      currentCluster = [nearbyIndices[i]];
+    } else {
+      currentCluster.push(nearbyIndices[i]);
+    }
+  }
+  clusters.push(currentCluster);
+
+  // Get middle CTS of each cluster
+  return clusters.map((cluster) => {
+    const midIdx = cluster[Math.floor(cluster.length / 2)];
+    return gpsSamples[midIdx].cts;
+  });
+}
+
+/**
+ * Find laps from crossing timestamps.
+ * Returns array of { lapNumber, startCts, finishCts, durationSec }.
+ */
+export function findLaps(gpsSamples, crossings) {
+  if (!crossings || crossings.length < 2) return [];
+
+  const laps = [];
+  for (let i = 0; i < crossings.length - 1; i++) {
+    const startCts = crossings[i];
+    const finishCts = crossings[i + 1];
+    const durationSec = (finishCts - startCts) / 1000;
+
+    laps.push({
+      lapNumber: i + 1,
+      startCts,
+      finishCts,
+      durationSec,
+    });
+  }
+
+  return laps;
 }
 
