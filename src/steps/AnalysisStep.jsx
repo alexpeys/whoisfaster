@@ -19,7 +19,7 @@ export default function AnalysisStep() {
 
   const { yourMetrics, compMetrics, yourYawRate, compYawRate, timeDelta, yourTotalTime, compTotalTime, compBounds } = analysis;
   const finalDelta = timeDelta.length > 0 ? timeDelta[timeDelta.length - 1].delta : 0;
-  const compStartSec = compBounds.startCts / 1000;
+  const compStartSec = compBounds ? compBounds.startCts / 1000 : 0;
 
   function seekVideo(videoEl, timeSec) {
     if (!videoEl) return;
@@ -195,7 +195,7 @@ export default function AnalysisStep() {
 
   // Determine video src + trimming
   const yourSrc = `${yourVideo?.url}#t=${startTime},${finishTime}`;
-  const compFinishSec = compBounds.finishCts / 1000;
+  const compFinishSec = compBounds ? compBounds.finishCts / 1000 : (compVideo?.url ? Infinity : 0);
   const compSrc = `${compVideo?.url}#t=${compStartSec},${compFinishSec}`;
   const currentSrc = videoMode === 'you' ? yourSrc : compSrc;
   const currentSeek = seekPoint ? (videoMode === 'you' ? seekPoint.you : seekPoint.comp) : null;

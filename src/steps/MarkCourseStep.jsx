@@ -159,6 +159,44 @@ export default function MarkCourseStep({ onNext, goBack }) {
     }
   }
 
+  // Helper function to run analysis with given bounds
+  async function runAnalysis(yourBounds, compBounds) {
+    setProcessing(true);
+    try {
+      const yourGps = yourVideo.telemetry.gps;
+      const compGps = compVideo.telemetry.gps;
+      const startCts = yourBounds.startCts;
+      const finishCts = yourBounds.finishCts;
+
+      const yourMetrics = computeMetrics(yourGps, startCts, finishCts);
+      const compMetrics = computeMetrics(compGps, compBounds.startCts, compBounds.finishCts);
+
+      const yourYawRate = computeYawRate(yourVideo.telemetry.gyro, startCts, finishCts);
+      const compYawRate = computeYawRate(compVideo.telemetry.gyro, compBounds.startCts, compBounds.finishCts);
+
+      const timeDelta = computeTimeDelta(yourMetrics, compMetrics);
+
+      setAnalysis({
+        yourMetrics,
+        compMetrics,
+        yourYawRate,
+        compYawRate,
+        compBounds: { startCts: compBounds.startCts, finishCts: compBounds.finishCts },
+        timeDelta,
+        startCts,
+        finishCts,
+        yourTotalTime: yourMetrics[yourMetrics.length - 1].raceTime,
+        compTotalTime: compMetrics[compMetrics.length - 1].raceTime,
+      });
+
+      onNext();
+    } catch (err) {
+      console.error(err);
+      alert('Error analyzing: ' + err.message);
+    }
+    setProcessing(false);
+  }
+
   async function handleAnalyze() {
     // Point-to-point mode
     if (raceMode !== 'circuit') {
@@ -199,12 +237,27 @@ export default function MarkCourseStep({ onNext, goBack }) {
             return; // Show UI for user to select runs
           }
 
-          // Single run detected, proceed with analysis
+          // Single run detected, proceed with analysis immediately using detected bounds
           if (detectedYourRuns.length === 1 && detectedCompRuns.length === 1) {
             setSelectedRunNumber(1);
             setYourSelectedRun({ startCts: detectedYourRuns[0].startCts, finishCts: detectedYourRuns[0].finishCts });
             setCompSelectedRun({ startCts: detectedCompRuns[0].startCts, finishCts: detectedCompRuns[0].finishCts });
-            // Fall through to analysis below
+            // Call analysis immediately with detected bounds instead of relying on state update
+            await runAnalysis(
+              { startCts: detectedYourRuns[0].startCts, finishCts: detectedYourRuns[0].finishCts },
+              { startCts: detectedCompRuns[0].startCts, finishCts: detectedCompRuns[0].finishCts }
+            );
+            return;
+          }
+
+          // Zero runs detected, fall back to original behavior using findCompBounds
+          if (detectedYourRuns.length === 0 && detectedCompRuns.length === 0) {
+            const compBoundsData = findCompBounds(compGps, startGps, finishGps);
+            await runAnalysis(
+              { startCts, finishCts },
+              { startCts: compBoundsData.startCts, finishCts: compBoundsData.finishCts }
+            );
+            return;
           }
         } catch (err) {
           console.error(err);
@@ -213,43 +266,9 @@ export default function MarkCourseStep({ onNext, goBack }) {
         }
       }
 
-      // Proceed with analysis using selected run bounds
+      // Proceed with analysis using selected run bounds (when user has selected from multiple runs)
       if (!yourSelectedRun || !compSelectedRun) return;
-      setProcessing(true);
-
-      try {
-        const yourGps = yourVideo.telemetry.gps;
-        const compGps = compVideo.telemetry.gps;
-        const startCts = yourSelectedRun.startCts;
-        const finishCts = yourSelectedRun.finishCts;
-
-        const yourMetrics = computeMetrics(yourGps, startCts, finishCts);
-        const compMetrics = computeMetrics(compGps, compSelectedRun.startCts, compSelectedRun.finishCts);
-
-        const yourYawRate = computeYawRate(yourVideo.telemetry.gyro, startCts, finishCts);
-        const compYawRate = computeYawRate(compVideo.telemetry.gyro, compSelectedRun.startCts, compSelectedRun.finishCts);
-
-        const timeDelta = computeTimeDelta(yourMetrics, compMetrics);
-
-        setAnalysis({
-          yourMetrics,
-          compMetrics,
-          yourYawRate,
-          compYawRate,
-          compBounds: { startCts: compSelectedRun.startCts, finishCts: compSelectedRun.finishCts },
-          timeDelta,
-          startCts,
-          finishCts,
-          yourTotalTime: yourMetrics[yourMetrics.length - 1].raceTime,
-          compTotalTime: compMetrics[compMetrics.length - 1].raceTime,
-        });
-
-        onNext();
-      } catch (err) {
-        console.error(err);
-        alert('Error analyzing: ' + err.message);
-      }
-      setProcessing(false);
+      await runAnalysis(yourSelectedRun, compSelectedRun);
       return;
     }
 
@@ -276,6 +295,7 @@ export default function MarkCourseStep({ onNext, goBack }) {
         compMetrics,
         yourYawRate,
         compYawRate,
+        compBounds: { startCts: compSelectedLap.startCts, finishCts: compSelectedLap.finishCts },
         timeDelta,
         startCts,
         finishCts,
