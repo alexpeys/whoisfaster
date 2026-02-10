@@ -233,3 +233,93 @@ export function findLaps(gpsSamples, crossings) {
   return laps;
 }
 
+/**
+ * Detect all runs in Point-to-Point mode by finding start→finish traversals.
+ * Scans GPS samples for proximity to start point, then finish point, alternating.
+ * Groups consecutive nearby samples into single crossings.
+ * Returns array of { runNumber, startCts, finishCts, durationSec }.
+ */
+export function detectRuns(gpsSamples, startLat, startLng, finishLat, finishLng, radiusMeters = 20) {
+  if (!gpsSamples || gpsSamples.length === 0) return [];
+
+  // Find all samples within radius of start point
+  const startNearbyIndices = [];
+  for (let i = 0; i < gpsSamples.length; i++) {
+    const dist = haversine(gpsSamples[i].lat, gpsSamples[i].lng, startLat, startLng);
+    if (dist <= radiusMeters) {
+      startNearbyIndices.push(i);
+    }
+  }
+
+  // Find all samples within radius of finish point
+  const finishNearbyIndices = [];
+  for (let i = 0; i < gpsSamples.length; i++) {
+    const dist = haversine(gpsSamples[i].lat, gpsSamples[i].lng, finishLat, finishLng);
+    if (dist <= radiusMeters) {
+      finishNearbyIndices.push(i);
+    }
+  }
+
+  if (startNearbyIndices.length === 0 || finishNearbyIndices.length === 0) return [];
+
+  // Cluster consecutive indices into crossing clusters
+  function clusterIndices(indices) {
+    const clusters = [];
+    let currentCluster = [indices[0]];
+
+    for (let i = 1; i < indices.length; i++) {
+      if (indices[i] - indices[i - 1] > 1) {
+        clusters.push(currentCluster);
+        currentCluster = [indices[i]];
+      } else {
+        currentCluster.push(indices[i]);
+      }
+    }
+    clusters.push(currentCluster);
+    return clusters;
+  }
+
+  const startClusters = clusterIndices(startNearbyIndices);
+  const finishClusters = clusterIndices(finishNearbyIndices);
+
+  // Get middle CTS of each cluster
+  const startCrossings = startClusters.map((cluster) => {
+    const midIdx = cluster[Math.floor(cluster.length / 2)];
+    return gpsSamples[midIdx].cts;
+  });
+
+  const finishCrossings = finishClusters.map((cluster) => {
+    const midIdx = cluster[Math.floor(cluster.length / 2)];
+    return gpsSamples[midIdx].cts;
+  });
+
+  // Match start→finish pairs: for each start, find the next finish
+  const runs = [];
+  let finishIdx = 0;
+
+  for (let i = 0; i < startCrossings.length; i++) {
+    const startCts = startCrossings[i];
+
+    // Find the next finish crossing after this start
+    while (finishIdx < finishCrossings.length && finishCrossings[finishIdx] <= startCts) {
+      finishIdx++;
+    }
+
+    if (finishIdx < finishCrossings.length) {
+      const finishCts = finishCrossings[finishIdx];
+      const durationSec = (finishCts - startCts) / 1000;
+
+      runs.push({
+        runNumber: runs.length + 1,
+        startCts,
+        finishCts,
+        durationSec,
+      });
+
+      finishIdx++; // Move to next finish for next start
+    }
+  }
+
+  return runs;
+}
+

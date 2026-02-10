@@ -12,6 +12,8 @@ export function AppProvider({ children }) {
   const [raceMode, setRaceMode] = useState(null); // 'point2point' or 'circuit'
   const [yourSelectedLap, setYourSelectedLap] = useState(null); // { startCts, finishCts } for circuit mode
   const [compSelectedLap, setCompSelectedLap] = useState(null); // { startCts, finishCts } for circuit mode
+  const [yourSelectedRun, setYourSelectedRun] = useState(null); // { startCts, finishCts } for point2point mode
+  const [compSelectedRun, setCompSelectedRun] = useState(null); // { startCts, finishCts } for point2point mode
 
   // Background extraction tracking
   const [yourExtracting, setYourExtracting] = useState(false);
@@ -91,6 +93,8 @@ export function AppProvider({ children }) {
       raceMode, setRaceMode,
       yourSelectedLap, setYourSelectedLap,
       compSelectedLap, setCompSelectedLap,
+      yourSelectedRun, setYourSelectedRun,
+      compSelectedRun, setCompSelectedRun,
       yourExtracting, compExtracting, extractError,
       startYourExtraction, startCompExtraction, waitForBothExtractions,
       faqOpen, faqInitialQuestion, openFaq, closeFaq,

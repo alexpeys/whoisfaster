@@ -1,11 +1,12 @@
 import { useRef, useState, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
-import { computeMetrics, computeYawRate, findCompBounds, computeTimeDelta, detectLapCrossings, findLaps } from '../utils/analysis';
+import { computeMetrics, computeYawRate, findCompBounds, computeTimeDelta, detectLapCrossings, findLaps, detectRuns } from '../utils/analysis';
 
 export default function MarkCourseStep({ onNext, goBack }) {
   const {
     yourVideo, compVideo, startTime, setStartTime, finishTime, setFinishTime, setAnalysis,
-    raceMode, yourSelectedLap, setYourSelectedLap, compSelectedLap, setCompSelectedLap
+    raceMode, yourSelectedLap, setYourSelectedLap, compSelectedLap, setCompSelectedLap,
+    yourSelectedRun, setYourSelectedRun, compSelectedRun, setCompSelectedRun
   } = useApp();
   const videoRef = useRef(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -17,6 +18,11 @@ export default function MarkCourseStep({ onNext, goBack }) {
   const [compLaps, setCompLaps] = useState([]);
   const [selectedLapNumber, setSelectedLapNumber] = useState(null);
   const [includedLaps, setIncludedLaps] = useState(new Set()); // Set of lap numbers to include
+
+  // Point-to-point mode state
+  const [yourRuns, setYourRuns] = useState([]);
+  const [compRuns, setCompRuns] = useState([]);
+  const [selectedRunNumber, setSelectedRunNumber] = useState(null);
 
   const handleTimeUpdate = useCallback(() => {
     if (videoRef.current) setCurrentTime(videoRef.current.currentTime);
@@ -94,22 +100,71 @@ export default function MarkCourseStep({ onNext, goBack }) {
     // Point-to-point mode
     if (raceMode !== 'circuit') {
       if (startTime == null || finishTime == null) return;
+
+      // If runs haven't been detected yet, detect them first
+      if (yourRuns.length === 0 && compRuns.length === 0) {
+        try {
+          const yourGps = yourVideo.telemetry.gps;
+          const compGps = compVideo.telemetry.gps;
+          const startCts = videoTimeToCts(startTime);
+          const finishCts = videoTimeToCts(finishTime);
+
+          // Get start/finish GPS coordinates from your video
+          const yourMetrics = computeMetrics(yourGps, startCts, finishCts);
+          const startGps = yourMetrics[0];
+          const finishGps = yourMetrics[yourMetrics.length - 1];
+
+          // Detect runs in both videos
+          const detectedYourRuns = detectRuns(yourGps, startGps.lat, startGps.lng, finishGps.lat, finishGps.lng);
+          const detectedCompRuns = detectRuns(compGps, startGps.lat, startGps.lng, finishGps.lat, finishGps.lng);
+
+          setYourRuns(detectedYourRuns);
+          setCompRuns(detectedCompRuns);
+
+          // If multiple runs detected, show selector UI (don't proceed to analysis yet)
+          if (detectedYourRuns.length > 1 || detectedCompRuns.length > 1) {
+            // Default to fastest run (shortest duration)
+            const fastestYourRun = detectedYourRuns.reduce((min, run) =>
+              run.durationSec < min.durationSec ? run : min
+            );
+            const fastestCompRun = detectedCompRuns.reduce((min, run) =>
+              run.durationSec < min.durationSec ? run : min
+            );
+            setSelectedRunNumber(fastestYourRun.runNumber);
+            setYourSelectedRun({ startCts: fastestYourRun.startCts, finishCts: fastestYourRun.finishCts });
+            setCompSelectedRun({ startCts: fastestCompRun.startCts, finishCts: fastestCompRun.finishCts });
+            return; // Show UI for user to select runs
+          }
+
+          // Single run detected, proceed with analysis
+          if (detectedYourRuns.length === 1 && detectedCompRuns.length === 1) {
+            setSelectedRunNumber(1);
+            setYourSelectedRun({ startCts: detectedYourRuns[0].startCts, finishCts: detectedYourRuns[0].finishCts });
+            setCompSelectedRun({ startCts: detectedCompRuns[0].startCts, finishCts: detectedCompRuns[0].finishCts });
+            // Fall through to analysis below
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Error detecting runs: ' + err.message);
+          return;
+        }
+      }
+
+      // Proceed with analysis using selected run bounds
+      if (!yourSelectedRun || !compSelectedRun) return;
       setProcessing(true);
 
       try {
         const yourGps = yourVideo.telemetry.gps;
         const compGps = compVideo.telemetry.gps;
-        const startCts = videoTimeToCts(startTime);
-        const finishCts = videoTimeToCts(finishTime);
+        const startCts = yourSelectedRun.startCts;
+        const finishCts = yourSelectedRun.finishCts;
 
         const yourMetrics = computeMetrics(yourGps, startCts, finishCts);
-        const startGps = yourMetrics[0];
-        const finishGps = yourMetrics[yourMetrics.length - 1];
-        const compBounds = findCompBounds(compGps, startGps, finishGps);
-        const compMetrics = computeMetrics(compGps, compBounds.startCts, compBounds.finishCts);
+        const compMetrics = computeMetrics(compGps, compSelectedRun.startCts, compSelectedRun.finishCts);
 
         const yourYawRate = computeYawRate(yourVideo.telemetry.gyro, startCts, finishCts);
-        const compYawRate = computeYawRate(compVideo.telemetry.gyro, compBounds.startCts, compBounds.finishCts);
+        const compYawRate = computeYawRate(compVideo.telemetry.gyro, compSelectedRun.startCts, compSelectedRun.finishCts);
 
         const timeDelta = computeTimeDelta(yourMetrics, compMetrics);
 
@@ -118,7 +173,7 @@ export default function MarkCourseStep({ onNext, goBack }) {
           compMetrics,
           yourYawRate,
           compYawRate,
-          compBounds,
+          compBounds: { startCts: compSelectedRun.startCts, finishCts: compSelectedRun.finishCts },
           timeDelta,
           startCts,
           finishCts,
@@ -209,6 +264,86 @@ export default function MarkCourseStep({ onNext, goBack }) {
               {processing ? 'Analyzing...' : '🏎 Analyze Race'}
             </button>
           </div>
+
+          {/* Run selector UI - shown when multiple runs detected */}
+          {yourRuns.length > 1 && (
+            <div style={{ marginTop: 24 }}>
+              <h3 style={{ marginBottom: 16, fontSize: 18 }}>Multiple Runs Detected</h3>
+
+              <div style={{ marginBottom: 24 }}>
+                <h4 style={{ marginBottom: 12, fontSize: 14, fontWeight: 600 }}>Your Video</h4>
+                <div className="lap-list">
+                  {yourRuns.map((run) => (
+                    <div key={run.runNumber} className="lap-item">
+                      <label className="lap-checkbox-label">
+                        <input
+                          type="radio"
+                          name="your-run"
+                          value={run.runNumber}
+                          checked={selectedRunNumber === run.runNumber}
+                          onChange={() => {
+                            setSelectedRunNumber(run.runNumber);
+                            setYourSelectedRun({ startCts: run.startCts, finishCts: run.finishCts });
+                          }}
+                          className="lap-checkbox"
+                        />
+                        <span className="lap-text">
+                          Run {run.runNumber}: {Math.floor(run.durationSec / 60)}:{(run.durationSec % 60).toFixed(2).padStart(5, '0')}
+                        </span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <h4 style={{ marginBottom: 12, fontSize: 14, fontWeight: 600 }}>Comparison Video</h4>
+                <div className="lap-list">
+                  {compRuns.map((run) => (
+                    <div key={run.runNumber} className="lap-item">
+                      <label className="lap-checkbox-label">
+                        <input
+                          type="radio"
+                          name="comp-run"
+                          value={run.runNumber}
+                          checked={compRuns.findIndex(r => r.runNumber === run.runNumber) === compRuns.findIndex(r => r.startCts === compSelectedRun?.startCts)}
+                          onChange={() => {
+                            setCompSelectedRun({ startCts: run.startCts, finishCts: run.finishCts });
+                          }}
+                          className="lap-checkbox"
+                        />
+                        <span className="lap-text">
+                          Run {run.runNumber}: {Math.floor(run.durationSec / 60)}:{(run.durationSec % 60).toFixed(2).padStart(5, '0')}
+                        </span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  className="marker-btn"
+                  onClick={() => {
+                    setYourRuns([]);
+                    setCompRuns([]);
+                    setSelectedRunNumber(null);
+                    setYourSelectedRun(null);
+                    setCompSelectedRun(null);
+                  }}
+                >
+                  ← Change Start/Finish
+                </button>
+                <button
+                  className={`marker-btn ${selectedRunNumber != null ? 'set' : ''}`}
+                  disabled={selectedRunNumber == null || processing}
+                  onClick={handleAnalyze}
+                >
+                  {processing ? 'Analyzing...' : '🏎 Analyze Race'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {goBack && (
             <button className="back-btn" onClick={goBack} style={{ marginTop: 24 }}>
