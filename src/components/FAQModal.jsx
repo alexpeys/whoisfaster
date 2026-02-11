@@ -12,6 +12,11 @@ const FAQ_ITEMS = [
     answer: 'No. All video processing and telemetry extraction happens entirely in your browser. Your videos never leave your device — there\'s no server, no upload, no tracking.',
   },
   {
+    id: 'gps-accuracy',
+    question: 'How accurate is GoPro GPS?',
+    answer: 'GoPro GPS isn\'t the most accurate GPS out there, but it should be more than sufficient for basic coaching and comparisons. You\'ll get a clear picture of where you\'re gaining or losing time — just don\'t expect survey-grade precision.',
+  },
+  {
     id: 'no-gps',
     question: 'Why does it say "No GPS telemetry found"?',
     answer: 'This usually means the GPS data was stripped from your video. Common causes:\n\n• GPS was off on the GoPro — Make sure GPS is enabled in your GoPro settings before recording.\n• Imported via iPhone Photos — iOS strips GoPro telemetry when you save to the Photos app. This is an iOS limitation.\n• Transferred via AirDrop — AirDrop can also strip metadata during transfer.\n\nHow to fix it: Use an SD card reader (Lightning or USB-C) plugged into your phone, then upload the video directly from the Files app — not from Photos. On desktop, copy the .MP4 file directly from the SD card.',
