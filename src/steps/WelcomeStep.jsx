@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import heroImg from '../assets/animewrx.jpg';
 
 export default function WelcomeStep({ onNext }) {
   const { startYourExtraction, openFaq } = useApp();
@@ -43,6 +44,11 @@ export default function WelcomeStep({ onNext }) {
 
   return (
     <div className="wizard-screen center-screen">
+      <img
+        src={heroImg}
+        alt="Race car"
+        className="hero-image"
+      />
       <h1 className="hero-title">WHO IS FASTER?</h1>
       <p className="hero-sub">Compare your GoPro race video against a coach or friend</p>
 
