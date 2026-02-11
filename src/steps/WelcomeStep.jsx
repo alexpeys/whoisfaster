@@ -1,11 +1,24 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import heroImg from '../assets/animewrx.jpg';
+import animebrz from '../assets/animebrz.jpg';
+import animedrift from '../assets/animedrift.jpg';
+import animejetta from '../assets/animejetta.jpg';
+import animemiatarace from '../assets/animemiatarace.jpg';
+import animenb from '../assets/animenb.jpg';
+import animenc from '../assets/animenc.jpg';
+import animend from '../assets/animend.jpg';
+import animetyper from '../assets/animetyper.jpg';
+import animeveloster from '../assets/animeveloster.jpg';
+import animewrx from '../assets/animewrx.jpg';
+import animewrx2 from '../assets/animewrx2.jpg';
 
 export default function WelcomeStep({ onNext }) {
   const { startYourExtraction, openFaq } = useApp();
   const inputRef = useRef(null);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  const heroImages = [animebrz, animedrift, animejetta, animemiatarace, animenb, animenc, animend, animetyper, animeveloster, animewrx, animewrx2];
+  const heroImg = useMemo(() => heroImages[Math.floor(Math.random() * heroImages.length)], []);
 
   function handleFile(file) {
     if (file && file.type.startsWith('video/')) {
